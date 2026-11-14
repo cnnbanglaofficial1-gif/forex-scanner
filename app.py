@@ -17,39 +17,39 @@ PAIRS = {
     "GOLD (XAU)": "GC=F"
 }
 
-def generate_fallback_df(base_price=1.0850):
-    now = datetime.now()
-    dates = [now - timedelta(hours=i) for i in range(60, 0, -1)]
-    np.random.seed(42)
-    changes = np.random.normal(0, base_price * 0.0015, 60)
-    prices = base_price + np.cumsum(changes)
-    
-    data = []
-    for i, dt in enumerate(dates):
-        o = prices[i]
-        c = o + np.random.normal(0, base_price * 0.001)
-        h = max(o, c) + abs(np.random.normal(0, base_price * 0.0008))
-        l = min(o, c) - abs(np.random.normal(0, base_price * 0.0008))
-        data.append({"Open": o, "High": h, "Low": l, "Close": c})
-    df = pd.DataFrame(data, index=pd.DatetimeIndex(dates))
-    return df
-
-def fetch_data(ticker):
-    try:
-        df = yf.download(ticker, period="7d", interval="1h", progress=False)
-        if not df.empty and len(df) > 10:
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-            return df.dropna()
-    except Exception:
-        pass
-    
+def generate_fallback_df(ticker):
     base_prices = {
         "EURUSD=X": 1.0820, "GBPUSD=X": 1.2650, "JPY=X": 153.40,
         "AUDUSD=X": 0.6540, "CAD=X": 1.3890, "CHF=X": 0.8810,
         "NZDUSD=X": 0.5980, "GC=F": 2680.50
     }
-    return generate_fallback_df(base_prices.get(ticker, 1.1000))
+    base_price = base_prices.get(ticker, 1.1000)
+    now = datetime.now()
+    dates = [now - timedelta(hours=i) for i in range(60, 0, -1)]
+    seed_val = sum(ord(c) for c in ticker)
+    np.random.seed(seed_val)
+    changes = np.random.normal(0, base_price * 0.0015, 60)
+    prices = base_price + np.cumsum(changes)
+    
+    data = []
+    for i, dt in enumerate(dates):
+        o = float(prices[i])
+        c = float(o + np.random.normal(0, base_price * 0.001))
+        h = float(max(o, c) + abs(np.random.normal(0, base_price * 0.0008)))
+        l = float(min(o, c) - abs(np.random.normal(0, base_price * 0.0008)))
+        data.append({"Open": o, "High": h, "Low": l, "Close": c})
+    return pd.DataFrame(data, index=pd.DatetimeIndex(dates))
+
+def fetch_data(ticker):
+    try:
+        df = yf.download(ticker, period="5d", interval="1h", progress=False, timeout=5)
+        if df is not None and not df.empty and len(df) > 10:
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            return df.dropna()
+    except Exception:
+        pass
+    return generate_fallback_df(ticker)
 
 def detect_order_blocks(df):
     obs = []
