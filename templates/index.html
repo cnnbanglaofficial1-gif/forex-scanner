@@ -2,18 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Forex Order Block & Momentum Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forex Order Block Scanner</title>
     <script src="https://unpkg.com"></script>
     <style>
-        body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; display: flex; height: 100vh; }
-        #sidebar { width: 320px; background: #1e293b; padding: 15px; overflow-y: auto; border-right: 1px solid #334155; }
-        #main { flex: 1; display: flex; flex-direction: column; padding: 15px; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
+        #sidebar { width: 300px; background: #1e293b; padding: 12px; overflow-y: auto; border-right: 1px solid #334155; }
+        #main { flex: 1; display: flex; flex-direction: column; padding: 12px; height: 100%; }
         .pair-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 8px; background: #0f172a; border-radius: 6px; cursor: pointer; border-left: 4px solid transparent; }
         .pair-row:hover { background: #334155; }
         .pos { color: #22c55e; border-left-color: #22c55e; }
         .neg { color: #ef4444; border-left-color: #ef4444; }
-        #chart { flex: 1; width: 100%; border-radius: 8px; overflow: hidden; }
-        .ob-tag { font-size: 12px; padding: 4px 8px; border-radius: 4px; margin-right: 8px; display: inline-block; margin-bottom: 10px; }
+        #chart { flex: 1; width: 100%; min-height: 300px; border-radius: 8px; overflow: hidden; }
+        .ob-tag { font-size: 11px; padding: 3px 6px; border-radius: 4px; margin: 2px; display: inline-block; }
+        h2, h3 { margin: 0 0 10px 0; font-size: 16px; }
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: 35vh; border-right: none; border-bottom: 1px solid #334155; }
+            #main { width: 100%; height: 65vh; }
+        }
     </style>
 </head>
 <body>
@@ -22,7 +30,7 @@
         <div id="momentum-list">Loading market data...</div>
     </div>
     <div id="main">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
             <h2 id="chart-title">EUR/USD - 1H Order Blocks</h2>
             <div id="ob-badges"></div>
         </div>
@@ -34,7 +42,8 @@
         const chart = LightweightCharts.createChart(chartContainer, {
             layout: { background: { color: '#0f172a' }, textColor: '#cbd5e1' },
             grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
-            timeScale: { timeVisible: true, secondsVisible: false }
+            timeScale: { timeVisible: true, secondsVisible: false },
+            autoSize: true
         });
         const candleSeries = chart.addCandlestickSeries({
             upColor: '#22c55e', downColor: '#ef4444', borderVisible: false, wickUpColor: '#22c55e', wickDownColor: '#ef4444'
@@ -42,18 +51,24 @@
         let priceLines = [];
 
         async function loadMomentum() {
-            const res = await fetch('/api/data');
-            const data = await res.json();
-            const list = document.getElementById('momentum-list');
-            list.innerHTML = '';
-            data.forEach(item => {
-                const div = document.createElement('div');
-                div.className = `pair-row ${item.change >= 0 ? 'pos' : 'neg'}`;
-                div.innerHTML = `<span><strong>${item.name}</strong><br><small>${item.price}</small></span><span>${item.change > 0 ? '+' : ''}${item.change}%</span>`;
-                div.onclick = () => loadChart(item.ticker, item.name);
-                list.appendChild(div);
-            });
-            if (data.length > 0) loadChart(data[0].ticker, data[0].name);
+            try {
+                const res = await fetch('/api/data');
+                const data = await res.json();
+                const list = document.getElementById('momentum-list');
+                list.innerHTML = '';
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = `pair-row ${item.change >= 0 ? 'pos' : 'neg'}`;
+                    div.innerHTML = `<span><strong>${item.name}</strong><br><small style="color:#94a3b8">${item.price}</small></span><strong>${item.change > 0 ? '+' : ''}${item.change}%</strong>`;
+                    div.onclick = () => loadChart(item.ticker, item.name);
+                    list.appendChild(div);
+                });
+                if (data.length > 0) {
+                    loadChart(data[0].ticker, data[0].name);
+                }
+            } catch (err) {
+                document.getElementById('momentum-list').innerText = 'Error loading data. Refresh page.';
+            }
         }
 
         async function loadChart(ticker, name) {
@@ -61,6 +76,7 @@
             const res = await fetch(`/api/chart/${ticker}`);
             const data = await res.json();
             candleSeries.setData(data.candles);
+            chart.timeScale().fitContent();
 
             priceLines.forEach(line => candleSeries.removePriceLine(line));
             priceLines = [];
@@ -74,7 +90,7 @@
                     color: color, lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: `${ob.type} OB`
                 });
                 priceLines.push(line);
-                badges.innerHTML += `<span class="ob-tag" style="background:${color}33; color:${color}; border:1px solid ${color}">${ob.type}: ${ob.low} - ${ob.high}</span>`;
+                badges.innerHTML += `<span class="ob-tag" style="background:${color}22; color:${color}; border:1px solid ${color}">${ob.type}: ${ob.low} - ${ob.high}</span>`;
             });
         }
 
