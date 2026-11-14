@@ -14,13 +14,13 @@
         .pair-row:hover { background: #334155; }
         .pos { color: #22c55e; border-left-color: #22c55e; }
         .neg { color: #ef4444; border-left-color: #ef4444; }
-        #chart { flex: 1; width: 100%; min-height: 300px; border-radius: 8px; overflow: hidden; }
+        #chart { flex: 1; width: 100%; min-height: 250px; border-radius: 8px; overflow: hidden; }
         .ob-tag { font-size: 11px; padding: 3px 6px; border-radius: 4px; margin: 2px; display: inline-block; }
-        h2, h3 { margin: 0 0 10px 0; font-size: 16px; }
+        h2, h3 { margin: 0 0 10px 0; font-size: 15px; }
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            #sidebar { width: 100%; height: 35vh; border-right: none; border-bottom: 1px solid #334155; }
-            #main { width: 100%; height: 65vh; }
+            #sidebar { width: 100%; height: 38vh; border-right: none; border-bottom: 1px solid #334155; }
+            #main { width: 100%; height: 62vh; }
         }
     </style>
 </head>
@@ -53,6 +53,7 @@
         async function loadMomentum() {
             try {
                 const res = await fetch('/api/data');
+                if (!res.ok) throw new Error('Server error');
                 const data = await res.json();
                 const list = document.getElementById('momentum-list');
                 list.innerHTML = '';
@@ -67,7 +68,7 @@
                     loadChart(data[0].ticker, data[0].name);
                 }
             } catch (err) {
-                document.getElementById('momentum-list').innerText = 'Error loading data. Refresh page.';
+                document.getElementById('momentum-list').innerText = 'Error: ' + err.message;
             }
         }
 
